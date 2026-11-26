@@ -1,0 +1,10 @@
+import { test, after } from 'node:test';
+import assert from 'node:assert/strict';
+import request from 'supertest';
+import { app } from './app.js';
+import { pool } from './db.js';
+process.env.JWT_SECRET='test-secret';
+after(()=>pool.end());
+test('health endpoint responds',async()=>{const r=await request(app).get('/api/health');assert.equal(r.status,200);assert.equal(r.body.status,'ok');});
+test('protected endpoint rejects anonymous access',async()=>{const r=await request(app).get('/api/employees');assert.equal(r.status,401);});
+test('login validates input before contacting the database',async()=>{const r=await request(app).post('/api/login').send({email:'invalid',password:''});assert.equal(r.status,400);});

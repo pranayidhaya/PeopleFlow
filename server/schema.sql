@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS roles (id serial PRIMARY KEY, name text UNIQUE NOT NULL);
+CREATE TABLE IF NOT EXISTS departments (id serial PRIMARY KEY, name text UNIQUE NOT NULL);
+CREATE TABLE IF NOT EXISTS designations (id serial PRIMARY KEY, name text UNIQUE NOT NULL);
+CREATE TABLE IF NOT EXISTS employees (id serial PRIMARY KEY, name text NOT NULL, email text UNIQUE NOT NULL, department_id int REFERENCES departments, designation_id int REFERENCES designations, status text NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')), hired_on date NOT NULL DEFAULT CURRENT_DATE, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS users (id serial PRIMARY KEY, email text UNIQUE NOT NULL, password_hash text NOT NULL, role_id int NOT NULL REFERENCES roles, employee_id int UNIQUE REFERENCES employees);
+CREATE TABLE IF NOT EXISTS leave_types (id serial PRIMARY KEY, name text UNIQUE NOT NULL, annual_limit int NOT NULL CHECK(annual_limit >= 0));
+CREATE TABLE IF NOT EXISTS leave_policies (id serial PRIMARY KEY, leave_type_id int UNIQUE NOT NULL REFERENCES leave_types, approval_required boolean NOT NULL DEFAULT true);
+CREATE TABLE IF NOT EXISTS leave_balances (employee_id int REFERENCES employees, leave_type_id int REFERENCES leave_types, year int NOT NULL, remaining int NOT NULL CHECK(remaining >= 0), PRIMARY KEY(employee_id,leave_type_id,year));
+CREATE TABLE IF NOT EXISTS leave_requests (id serial PRIMARY KEY, employee_id int NOT NULL REFERENCES employees, leave_type_id int NOT NULL REFERENCES leave_types, start_date date NOT NULL, end_date date NOT NULL, days int NOT NULL CHECK(days > 0), reason text NOT NULL, status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')), created_at timestamptz NOT NULL DEFAULT now(), CHECK(end_date >= start_date));
+CREATE INDEX IF NOT EXISTS leave_requests_employee_dates ON leave_requests(employee_id,start_date,end_date);
+CREATE TABLE IF NOT EXISTS leave_approval_history (id serial PRIMARY KEY, request_id int NOT NULL REFERENCES leave_requests, actor_id int NOT NULL REFERENCES users, decision text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS notifications (id serial PRIMARY KEY, user_id int NOT NULL REFERENCES users, message text NOT NULL, read_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS audit_logs (id serial PRIMARY KEY, actor_id int REFERENCES users, action text NOT NULL, details jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
