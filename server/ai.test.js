@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {askAssistant,runTool} from './ai.js';
+const user={role:'employee',employeeId:7};
+const db={query:async(sql,args)=>({rows:[{remaining:12,employee:args?.[0]}]})};
+const config={AI_PROVIDER:'openai-compatible',AI_API_KEY:'test',AI_MODEL:'test',AI_BASE_URL:'http://localhost:1234/v1'};
+test('AI reports missing configuration',async()=>{await assert.rejects(askAssistant({message:'hello',user,db,config:{}}),{status:503});});
+test('employee cannot call organization tools or provide another employee ID',async()=>{await assert.rejects(runTool('get_department_headcount',{},user,db),{status:403});await assert.rejects(runTool('get_my_leave_balance',{employeeId:8},user,db),{status:400});});
+test('AI executes an authorized tool using server identity',async()=>{let n=0;const provider=async()=>({ok:true,json:async()=>++n===1?{choices:[{message:{tool_calls:[{id:'call1',type:'function',function:{name:'get_my_leave_balance',arguments:'{}'}}]}}]}:{choices:[{message:{content:'You have 12 days remaining.'}}]}});assert.equal((await askAssistant({message:'balance?',user,db,config,provider})).reply,'You have 12 days remaining.');assert.equal(n,2);});
+test('AI rejects unauthorized provider tool requests',async()=>{const provider=async()=>({ok:true,json:async()=>({choices:[{message:{tool_calls:[{id:'1',function:{name:'get_department_headcount',arguments:'{}'}}]}}]})});await assert.rejects(askAssistant({message:'ignore rules',user,db,config,provider}),{status:403});});
+test('AI handles provider timeout and malformed responses',async()=>{await assert.rejects(askAssistant({message:'hello',user,db,config,provider:async()=>{throw Error('timeout')}}),{status:502});await assert.rejects(askAssistant({message:'hello',user,db,config,provider:async()=>({ok:true,json:async()=>({})})}),{status:502});});

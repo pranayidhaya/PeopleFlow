@@ -6,9 +6,11 @@ All routes except `GET /api/health` and `POST /api/login` require `Authorization
 | --- | --- | --- |
 | GET/POST /api/departments | authenticated / staff | List/create departments |
 | GET/POST /api/employees | staff | Search/list or create employees |
+| GET /api/employees/:id | staff or owner | Employee profile |
 | PUT /api/employees/:id | staff | Update employee |
 | GET /api/leave-types, /api/balances | authenticated | Types and own balances |
 | GET/POST /api/leave | authenticated | Requests visible to caller / submit own request |
+| GET /api/leave/:id/history | staff or owner | Approval history |
 | POST /api/leave/:id/decision | staff | Approve or reject with `{decision}` |
 | GET /api/analytics | staff | Aggregate employee and leave data |
 | GET /api/notifications | authenticated | Own notifications |
@@ -17,4 +19,4 @@ All routes except `GET /api/health` and `POST /api/login` require `Authorization
 | GET /api/export/:kind | staff | CSV, kind is `employees` or `leave` |
 | GET /api/settings; PUT /api/settings/:id | admin | Read/update leave limits |
 
-Staff means HR or admin. Employee records accept `name`, `email`, `department_id` (number or null), and `status` (`active` or `inactive`). Leave requests accept `leave_type_id`, `start_date`, `end_date` and `reason`. No API has yet been verified against a live database.
+Staff means HR or admin. Employee records accept `name`, `email`, `department_id` (number or null), and `status` (`active` or `inactive`). Leave requests accept `leave_type_id`, `start_date`, `end_date` and `reason`. The integration tests cover core workflows but do not cover every endpoint.
